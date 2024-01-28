@@ -1,4 +1,4 @@
-# Hand Gesture Volume Control
+# Hand Gesture Volume Control 
 
 ## Overview
 This Python program utilizes computer vision and gesture recognition to control media playback and adjust system volume through hand gestures. It utilizes the following libraries:
