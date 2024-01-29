@@ -19,7 +19,7 @@ Run the CMD file (i.e. "volumeApp.cmd")
 The program uses your computer's default camera to capture video.
 It detects hand landmarks using MediaPipe.
 Gestures are recognized to control media playback and adjust system volume.
-Specific gestures include play/pause (closing thumb and index finger) and volume adjustment (changing the angle of a line(imaginary) between thumb and index finger minimum angle is 30 and maximum is 150).
+To trigger volume control tap all your fingers with your thumb it has a 1.5 sec delay for convenience and then you can change volume by changing the angles of the line between your thumb and index finger and doing to same will switch to play/pause (closing thumb and index finger).
 ## Note
 This program is specifically designed for Windows and may not work on other operating systems.
 Ensure your system's camera is properly configured for accurate hand tracking.
