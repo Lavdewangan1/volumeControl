@@ -1,14 +1,13 @@
 import cv2
 import mediapipe as mp
-from math import hypot
-from math import atan2, degrees
+import time
+from math import hypot, atan2, degrees
 from ctypes import cast, POINTER
 from comtypes import CLSCTX_ALL
 from pycaw.pycaw import AudioUtilities, IAudioEndpointVolume
 import numpy as np
 import keyboard
 import pyautogui
-
 
 cap = cv2.VideoCapture(0)
 mpHands = mp.solutions.hands
@@ -19,6 +18,10 @@ devices = AudioUtilities.GetSpeakers()
 interface = devices.Activate(IAudioEndpointVolume._iid_, CLSCTX_ALL, None)
 volume = cast(interface, POINTER(IAudioEndpointVolume))
 volMin, volMax = volume.GetVolumeRange()[:2]
+
+# Initialize state variables
+catching_state = False
+playpause_state = False
 
 while True:
     success, img = cap.read()
@@ -37,36 +40,51 @@ while True:
 
     if lmList != []:
         x1, y1 = lmList[4][1], lmList[4][2]  # thumb
-        x2, y2 = lmList[8][1], lmList[8][2]  # index finger
-        cv2.circle(img, (x1, y1), 13, (255, 0, 0), cv2.FILLED)
-        cv2.circle(img, (x2, y2), 13, (255, 0, 0), cv2.FILLED)
-        cv2.line(img, (x1, y1), (x2, y2), (255, 0, 0), 3)
+        x_pinky, y_pinky = lmList[20][1], lmList[20][2]  # pinky
+        x_index, y_index = lmList[8][1], lmList[8][2]  # index
 
-        length = hypot(x2 - x1, y2 - y1)
+        # Calculate distances
+        distance_thumb_pinky = hypot(x_pinky - x1, y_pinky - y1)
+        distance_thumb_index = hypot(x_index - x1, y_index - y1)
 
-        if length < 30:
-            pyautogui.keyDown("playpause")
-            pyautogui.keyUp("playpause")
+        print(distance_thumb_pinky, distance_thumb_index)
 
-        angle = -degrees(atan2(y2 - y1, x2 - x1))
-        vol = np.interp(angle, [30, 150], [volMin, volMax])
-        volbar = np.interp(angle, [30, 150], [400, 150])
-        volper = np.interp(angle, [30, 150], [0, 100])
-        print(vol + 100, int(angle), length)
-        if length > 70:
-            volume.SetMasterVolumeLevel(vol, None)
+        # Toggle catching state
+        if distance_thumb_pinky < 30 and distance_thumb_index < 30:
+            catching_state = not catching_state
+            time.sleep(1.5)
+            if catching_state:
+                print("\n Catching for volume change...")
+
+        # Toggle play/pause state
+        if (
+            distance_thumb_pinky < 30
+            and distance_thumb_index < 30
+            and not catching_state
+        ):
+            playpause_state = not playpause_state
+            time.sleep(1.5)
+            if playpause_state:
+                print("Play/Pause")
+
+        # Volume change logic
+        if catching_state and distance_thumb_index > 70:
+            angle = -degrees(atan2(y_index - y1, x_index - x1))
+            vol = np.interp(angle, [30, 150], [volMin, volMax])
+            volbar = np.interp(angle, [30, 150], [400, 150])
             cv2.rectangle(img, (50, 150), (85, 400), (0, 0, 255), 4)
             cv2.rectangle(img, (50, int(volbar)), (85, 400), (0, 0, 255), cv2.FILLED)
-            cv2.putText(
-                img, f"{int(volper)}%", (10, 40), cv2.FONT_ITALIC, 1, (0, 255, 98), 3
-            )
 
-            if angle > 160:
+            if angle < 90:
                 keyboard.press_and_release("volume down")
-            elif angle < 35:
+            else:
                 keyboard.press_and_release("volume up")
 
-# cv2.imshow('Image', img)
+    # Play/Pause logic
+    if playpause_state and distance_thumb_index < 30:
+        pyautogui.keyDown("playpause")
+        pyautogui.keyUp("playpause")
+
 
 cap.release()
 cv2.destroyAllWindows()
